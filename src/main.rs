@@ -24,11 +24,14 @@ fn main() {
     } else {
         let mut buff = String::new();
         let mut stdin = io::stdin();
-        stdin
-            .read_to_string(&mut buff).unwrap();
+        stdin.read_to_string(&mut buff).unwrap();
         Ok(buff)
     };
-    let val : Value = serde_json::from_str(content.unwrap().as_str()).unwrap();
-    let json = serde_json::ser::to_string_pretty(&val);
-    println!("{}", json.unwrap());
+    if content.is_err() {
+        return;
+    }
+    if let Ok(val) = serde_json::from_str::<Value>(content.unwrap().as_str()) {
+        let json = serde_json::ser::to_string_pretty(&val);
+        println!("{}", json.unwrap());
+    }
 }
