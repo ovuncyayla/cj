@@ -1,8 +1,10 @@
 [package]
-name = "jr"
-version = "0.1.0"
+name = "cj"
+version = "0.0.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Övünç Yayla <ovuncyayla@gmail.com>"]
+description = "Blazing fast json utilities"
+license = "GPL-3.0-or-later"
 
 [dependencies]
