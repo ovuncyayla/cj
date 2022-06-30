@@ -8,29 +8,28 @@ fn main() {
         // Add the json path arguments
         .arg(arg!(--"path" [PATH] "file path relative or absolute").short('p'))
         // .arg(arg!(--"url" <URL> "fetch from url").short('u'))
-        .arg(arg!([JSON] "read from stdin"))
+        .arg(arg!([STDIN] "read from stdin"))
         // Create a group, make it required, and add the above arguments
         .group(
             ArgGroup::new("input")
                 .required(false)
-                .args(&["path", "JSON"]),
+                .args(&["path", "STDIN"]),
         )
         .get_matches();
 
     let content = if let Some(j) = matches.value_of("path") {
         std::fs::read_to_string(j)
-    } else if let Some(j) = matches.value_of("JSON") {
+    } else if let Some(j) = matches.value_of("STDIN") {
         Ok(j.to_string())
     } else {
-        let stdin = io::stdin();
-        let mut buff2 = vec![];
-        stdin.lock().read_to_end(&mut buff2).unwrap();
-        let buff = String::from_utf8(buff2).unwrap_or_else(|op| {
+        let mut input = vec![];
+        io::stdin().lock().read_to_end(&mut input).unwrap();
+        let input_str = String::from_utf8(input).unwrap_or_else(|op| {
             let e = format!("Error while reading stdin: {}", &op);
             println!("{}", e);
             e
         });
-        Ok(buff)
+        Ok(input_str)
     };
     if content.is_err() {
         return;
