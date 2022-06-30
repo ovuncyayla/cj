@@ -22,9 +22,14 @@ fn main() {
     } else if let Some(j) = matches.value_of("JSON") {
         Ok(j.to_string())
     } else {
-        let mut buff = String::new();
-        let mut stdin = io::stdin();
-        stdin.read_to_string(&mut buff).unwrap();
+        let stdin = io::stdin();
+        let mut buff2 = vec![];
+        stdin.lock().read_to_end(&mut buff2).unwrap();
+        let buff = String::from_utf8(buff2).unwrap_or_else(|op| {
+            let e = format!("Error while reading stdin: {}", &op);
+            println!("{}", e);
+            e
+        });
         Ok(buff)
     };
     if content.is_err() {
