@@ -65,7 +65,15 @@ fn run(content: &str, filters: Vec<&str>) {
 }
 
 fn extract_values(json: Value, filters: Vec<&str>) {
-    let path = JsonPathInst::from_str(filters[0]).unwrap();
-    let finder = JsonPathFinder::new(Box::from(json), Box::from(path));
-    print!("{:?}", finder.find());
+    let paths: Vec<JsonPathInst> = filters
+        .iter()
+        .map(|f| JsonPathInst::from_str(*f))
+        .take_while(|p| p.is_ok())
+        .map(|p| p.unwrap())
+        .collect();
+
+    for path in paths {
+        let finder = JsonPathFinder::new(Box::from(json.clone()), Box::from(path));
+        println!("{:?}", serde_json::ser::to_string_pretty(&finder.find()));
+    }
 }
