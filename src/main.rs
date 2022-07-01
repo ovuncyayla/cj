@@ -1,13 +1,22 @@
 use clap::{arg, command, ArgGroup};
+use jsonpath_rust::{JsonPathFinder, JsonPathInst};
 use serde_json::Value;
-use std::io::{self, Read};
+use std::{
+    io::{self, Read},
+    str::FromStr,
+};
 
 fn main() {
     // Create application
     let matches = command!()
         // Add the json path arguments
         .arg(arg!(--"path" [PATH] "file path relative or absolute").short('p'))
-        // .arg(arg!(--"url" <URL> "fetch from url").short('u'))
+        .arg(
+            arg!(--"filters" <FILTERS> "filters")
+                .short('f')
+                .required(false)
+                .multiple_values(true),
+        )
         .arg(arg!([STDIN] "read from stdin"))
         // Create a group, make it required, and add the above arguments
         .group(
@@ -19,8 +28,6 @@ fn main() {
 
     let content = if let Some(j) = matches.value_of("path") {
         std::fs::read_to_string(j)
-    } else if let Some(j) = matches.value_of("STDIN") {
-        Ok(j.to_string())
     } else {
         let mut input = vec![];
         io::stdin().lock().read_to_end(&mut input).unwrap();
@@ -32,10 +39,33 @@ fn main() {
         Ok(input_str)
     };
     if content.is_err() {
+        println!("Content err{:?}", content);
         return;
     }
-    if let Ok(val) = serde_json::from_str::<Value>(content.unwrap().as_str()) {
-        let json = serde_json::ser::to_string_pretty(&val);
-        println!("{}", json.unwrap());
+
+    let filters: Vec<&str> = match matches.value_of("filters") {
+        Some(f) => f.split(' ').collect(),
+        None => vec![],
+    };
+
+    run(content.unwrap().as_str(), filters);
+}
+
+fn run(content: &str, filters: Vec<&str>) {
+    match serde_json::from_str::<Value>(content) {
+        Ok(val) => {
+            if filters.is_empty() {
+                let json = serde_json::ser::to_string_pretty(&val);
+                println!("{}", json.unwrap())
+            }
+            extract_values(val, filters)
+        }
+        Err(e) => println!("Invalid JSON: {}", e),
     }
+}
+
+fn extract_values(json: Value, filters: Vec<&str>) {
+    let path = JsonPathInst::from_str(filters[0]).unwrap();
+    let finder = JsonPathFinder::new(Box::from(json), Box::from(path));
+    print!("{:?}", finder.find());
 }
