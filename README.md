@@ -1,5 +1,5 @@
 # CJ
-cj is a lightweight command-line tool to process JSON files blazingly fast :tw-1f4a5: (I had to say it because it is written in rust :tw-1f61c:).
+cj is a lightweight command-line tool to process JSON files blazingly fast :boom: (I had to say it because it is written in rust :stuck_out_tongue_winking_eye:).
 
 ## Features
 It is in very early stage of development so there's lots of room to improve. (Feature requests and PR's are very welcome.) That being said, it can prettify / minify json input, process json-path expressions and prints out the results to stdout.
