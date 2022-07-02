@@ -24,7 +24,11 @@ fn main() {
                 .required(false)
                 .multiple_values(true),
         )
-        .arg(arg!(--"compress" [JSON] "compress JSON input").short('c'))
+        .arg(
+            arg!(--"compress" "compress JSON input")
+                .short('c')
+                .required(false),
+        )
         .group(
             ArgGroup::new("print")
                 .required(false)
@@ -49,12 +53,12 @@ fn main() {
         return;
     }
 
-    let filters: Vec<&str> = match matches.value_of("filters") {
-        Some(f) => f.split(' ').collect(),
+    let filters: Vec<&str> = match matches.values_of("filters") {
+        Some(v) => v.collect(),
         None => vec![],
     };
 
-    let compress_output = matches.value_of("compress").is_some();
+    let compress_output = matches.is_present("compress");
 
     run(content.unwrap().as_str(), filters, compress_output);
 }
@@ -63,7 +67,7 @@ fn run(content: &str, filters: Vec<&str>, compress: bool) {
     match serde_json::from_str::<Value>(content) {
         Ok(val) => {
             if filters.is_empty() {
-                let json = if compress {
+                let json = if !compress {
                     serde_json::ser::to_string_pretty(&val)
                 } else {
                     serde_json::ser::to_string(&val)
