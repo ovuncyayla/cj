@@ -1,10 +1,11 @@
 [package]
 name = "cj"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 
 authors = ["Övünç Yayla <ovuncyayla@gmail.com>"]
 description = "Blazing fast command-line json processor"
+readme = "CRATE.md"
 homepage = "https://github.com/ovuncyayla/cj"
 repository = "https://github.com/ovuncyayla/cj"
 keywords = ["json", "cli", "json-path", "utility"]
