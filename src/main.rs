@@ -11,18 +11,24 @@ fn main() {
     let matches = command!()
         // Add the json path arguments
         .arg(arg!(--"path" [PATH] "file path relative or absolute").short('p'))
-        .arg(
-            arg!(--"filters" <FILTERS> "filters")
-                .short('f')
-                .required(false)
-                .multiple_values(true),
-        )
         .arg(arg!([STDIN] "read from stdin"))
         // Create a group, make it required, and add the above arguments
         .group(
             ArgGroup::new("input")
                 .required(false)
                 .args(&["path", "STDIN"]),
+        )
+        .arg(
+            arg!(--"filters" <FILTERS> "filters")
+                .short('f')
+                .required(false)
+                .multiple_values(true),
+        )
+        .arg(arg!(--"compress" [JSON] "compress JSON input").short('c'))
+        .group(
+            ArgGroup::new("print")
+                .required(false)
+                .args(&["filters", "compress"]),
         )
         .get_matches();
 
@@ -48,14 +54,20 @@ fn main() {
         None => vec![],
     };
 
-    run(content.unwrap().as_str(), filters);
+    let compress_output = matches.value_of("compress").is_some();
+
+    run(content.unwrap().as_str(), filters, compress_output);
 }
 
-fn run(content: &str, filters: Vec<&str>) {
+fn run(content: &str, filters: Vec<&str>, compress: bool) {
     match serde_json::from_str::<Value>(content) {
         Ok(val) => {
             if filters.is_empty() {
-                let json = serde_json::ser::to_string_pretty(&val);
+                let json = if compress {
+                    serde_json::ser::to_string_pretty(&val)
+                } else {
+                    serde_json::ser::to_string(&val)
+                };
                 println!("{}", json.unwrap())
             }
             extract_values(val, filters)
@@ -74,6 +86,15 @@ fn extract_values(json: Value, filters: Vec<&str>) {
 
     for path in paths {
         let finder = JsonPathFinder::new(Box::from(json.clone()), Box::from(path));
-        println!("{:?}", serde_json::ser::to_string_pretty(&finder.find()));
+
+        match &finder.find() {
+            Value::Array(p) => {
+                let mut val = serde_json::ser::to_string(&p).unwrap().to_string();
+                val.remove(0);
+                val.pop();
+                println!("{}", val);
+            }
+            _ => unreachable!(),
+        }
     }
 }
