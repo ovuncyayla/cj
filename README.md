@@ -89,8 +89,5 @@ You can find more information about json path expressions [here](https://goessne
 ## Inspiration
 Inspiration for this project comes from the beautiful tool [jq](https://github.com/stedolan/jq "jq"). You may check that out for a more feature-rich version of this project or in case you want a json processor tool wihout having to install rust/cargo on your system.
 
-## Thanks
-Thanks to @besok for the [jsoppath-rust](https://github.com/besok/jsonpath-rust) library.
-
 ## LICENSE
 [GNU General Public License v3.0 or later](https://spdx.org/licenses/GPL-3.0-or-later.html "GNU General Public License v3.0 or later")
