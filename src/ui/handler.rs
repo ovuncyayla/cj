@@ -19,13 +19,18 @@ pub fn handle_key_events(
             KeyCode::Char('e') => {
                 app.input_mode = InputMode::Editing;
                 app.input_mode = InputMode::Editing;
-                terminal.borrow_mut().set_cursor(
+                let mut t = terminal.borrow_mut();
+                t.set_cursor(
                     app.query_section.rect.x + app.query.width() as u16 + 1,
-                    app.query_section.rect.y + 1,
+                    app.query_section.rect.y,
                 )?;
             }
             KeyCode::Char('q') => {
                 return Ok(());
+            }
+            // exit application on ESC
+            KeyCode::Esc => {
+                app.running = false;
             }
             _ => {}
         },
@@ -46,10 +51,6 @@ pub fn handle_key_events(
         },
     }
     match key_event.code {
-        // exit application on ESC
-        KeyCode::Esc => {
-            app.running = false;
-        }
         // exit application on Ctrl-D
         KeyCode::Char('d') | KeyCode::Char('D') => {
             if key_event.modifiers == KeyModifiers::CONTROL {

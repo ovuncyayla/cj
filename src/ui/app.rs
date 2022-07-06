@@ -1,9 +1,7 @@
 use std::error;
 use tui::layout::{Alignment, Rect};
-use tui::style::{Color, Style};
+use tui::style::{Color, Modifier, Style};
 
-use std::collections::{BTreeMap, BTreeSet};
-use tui::widgets::canvas::Rectangle;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
@@ -82,11 +80,16 @@ impl App<'_> {
         let input = Paragraph::new(self.query.as_ref())
             .style(match self.input_mode {
                 InputMode::Normal => Style::default(),
-                InputMode::Editing => Style::default().fg(Color::Yellow),
+                InputMode::Editing => Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::RAPID_BLINK),
             })
             .block(Block::default().borders(Borders::ALL).title("Input"));
 
-        self.query_section.block = Block::default().title("Query").borders(Borders::ALL);
+        self.query_section.block = Block::default()
+            .title("Query")
+            .borders(Borders::ALL)
+            .style(Style::default().add_modifier(Modifier::RAPID_BLINK));
         self.query_section.rect = l[0];
         frame.render_widget(input, self.query_section.rect);
 
