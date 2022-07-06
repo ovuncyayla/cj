@@ -1,7 +1,9 @@
 use std::error;
-use tui::layout::Alignment;
+use tui::layout::{Alignment, Rect};
 use tui::style::{Color, Style};
 
+use std::collections::{BTreeMap, BTreeSet};
+use tui::widgets::canvas::Rectangle;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
@@ -12,20 +14,51 @@ use tui::{
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-/// Application.
-#[derive(Debug)]
-pub struct App {
-    /// Is the application running?
-    pub running: bool,
+#[derive(Debug, PartialEq)]
+pub enum InputMode {
+    Normal,
+    Editing,
 }
 
-impl Default for App {
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Default)]
+pub struct Coord {
+    pub x: u16,
+    pub y: u16,
+}
+
+#[derive(Debug, PartialEq, Default)]
+pub struct SectionBlock<'a> {
+    pub rect: Rect,
+    pub block: Block<'a>,
+}
+
+/// Application.
+#[derive(Debug)]
+pub struct App<'a> {
+    pub running: bool,
+    pub input_mode: InputMode,
+    pub query: String,
+
+    pub query_section: SectionBlock<'a>,
+    pub input_section: SectionBlock<'a>,
+    pub output_section: SectionBlock<'a>,
+}
+
+impl Default for App<'_> {
     fn default() -> Self {
-        Self { running: true }
+        Self {
+            running: true,
+            query: String::from(""),
+            query_section: Default::default(),
+            input_section: Default::default(),
+            output_section: Default::default(),
+            input_mode: InputMode::Normal,
+        }
     }
 }
 
-impl App {
+impl App<'_> {
     /// Constructs a new instance of [`App`].
     pub fn new() -> Self {
         Self::default()
@@ -45,22 +78,27 @@ impl App {
             .margin(1)
             .constraints([Constraint::Percentage(10), Constraint::Percentage(90)].as_ref())
             .split(frame.size());
-        let block = Block::default().title("Block").borders(Borders::ALL);
-        frame.render_widget(block, l[0]);
+
+        let input = Paragraph::new(self.query.as_ref())
+            .style(match self.input_mode {
+                InputMode::Normal => Style::default(),
+                InputMode::Editing => Style::default().fg(Color::Yellow),
+            })
+            .block(Block::default().borders(Borders::ALL).title("Input"));
+
+        self.query_section.block = Block::default().title("Query").borders(Borders::ALL);
+        self.query_section.rect = l[0];
+        frame.render_widget(input, self.query_section.rect);
+
         let chunks = layout(frame.size());
-        let block = Block::default().title("Block").borders(Borders::ALL);
-        frame.render_widget(block, chunks[0]);
-        let block = Block::default().title("Block 2").borders(Borders::ALL);
-        frame.render_widget(block, chunks[1]);
-        // let block = Block::default().title("Block 3").borders(Borders::ALL);
-        // frame.render_widget(block, chunks[2]);
-        // frame.render_widget(
-        //     Paragraph::new("{{project-name}}")
-        //         .block(Block::default().borders(Borders::ALL))
-        //         .style(Style::default().fg(Color::White).bg(Color::Black))
-        //         .alignment(Alignment::Center),
-        //     frame.size(),
-        // )
+
+        self.input_section.block = Block::default().title("JSON").borders(Borders::ALL);
+        self.input_section.rect = chunks[0];
+        frame.render_widget(self.input_section.block.clone(), self.input_section.rect);
+
+        self.output_section.block = Block::default().title("Output").borders(Borders::ALL);
+        self.output_section.rect = chunks[1];
+        frame.render_widget(self.output_section.block.clone(), self.output_section.rect);
     }
 }
 

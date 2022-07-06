@@ -1,8 +1,50 @@
-use super::app::{App, AppResult};
+use super::app::{App, AppResult, InputMode};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::io::Stderr;
+use tui::backend::CrosstermBackend;
+use tui::Terminal;
+
+use std::cell::RefCell;
+use std::rc::Rc;
+use unicode_width::UnicodeWidthStr;
 
 /// Handles the key events and updates the state of [`App`].
-pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
+pub fn handle_key_events(
+    key_event: KeyEvent,
+    app: &mut App,
+    terminal: Rc<RefCell<Terminal<CrosstermBackend<Stderr>>>>,
+) -> AppResult<()> {
+    match app.input_mode {
+        InputMode::Normal => match key_event.code {
+            KeyCode::Char('e') => {
+                app.input_mode = InputMode::Editing;
+                app.input_mode = InputMode::Editing;
+                terminal.borrow_mut().set_cursor(
+                    app.query_section.rect.x + app.query.width() as u16 + 1,
+                    app.query_section.rect.y + 1,
+                )?;
+            }
+            KeyCode::Char('q') => {
+                return Ok(());
+            }
+            _ => {}
+        },
+        InputMode::Editing => match key_event.code {
+            KeyCode::Enter => {
+                // app.messages.push(app.query.drain(..).collect());
+            }
+            KeyCode::Char(c) => {
+                app.query.push(c);
+            }
+            KeyCode::Backspace => {
+                app.query.pop();
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+            }
+            _ => {}
+        },
+    }
     match key_event.code {
         // exit application on ESC
         KeyCode::Esc => {

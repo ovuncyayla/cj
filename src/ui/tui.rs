@@ -2,7 +2,11 @@ use super::app::{App, AppResult};
 use super::event::EventHandler;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::io;
+use std::ops::Deref;
+use std::rc::Rc;
 use tui::backend::Backend;
 use tui::Terminal;
 
@@ -13,14 +17,14 @@ use tui::Terminal;
 #[derive(Debug)]
 pub struct Tui<B: Backend> {
     /// Interface to the Terminal.
-    terminal: Terminal<B>,
+    terminal: Rc<RefCell<Terminal<B>>>,
     /// Terminal event handler.
     pub events: EventHandler,
 }
 
 impl<B: Backend> Tui<B> {
     /// Constructs a new instance of [`Tui`].
-    pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
+    pub fn new(terminal: Rc<RefCell<Terminal<B>>>, events: EventHandler) -> Self {
         Self { terminal, events }
     }
 
@@ -30,8 +34,9 @@ impl<B: Backend> Tui<B> {
     pub fn init(&mut self) -> AppResult<()> {
         terminal::enable_raw_mode()?;
         crossterm::execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
-        self.terminal.hide_cursor()?;
-        self.terminal.clear()?;
+        let mut t = (*self.terminal).borrow_mut();
+        t.hide_cursor()?;
+        t.clear()?;
         Ok(())
     }
 
@@ -40,7 +45,8 @@ impl<B: Backend> Tui<B> {
     /// [`Draw`]: tui::Terminal::draw
     /// [`rendering`]: crate::app::App::render
     pub fn draw(&mut self, app: &mut App) -> AppResult<()> {
-        self.terminal.draw(|frame| app.render(frame))?;
+        let mut t = (*self.terminal).borrow_mut();
+        t.draw(|frame| app.render(frame))?;
         Ok(())
     }
 
@@ -50,7 +56,8 @@ impl<B: Backend> Tui<B> {
     pub fn exit(&mut self) -> AppResult<()> {
         terminal::disable_raw_mode()?;
         crossterm::execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
-        self.terminal.show_cursor()?;
+        let mut t = (*self.terminal).borrow_mut();
+        t.show_cursor()?;
         Ok(())
     }
 }
