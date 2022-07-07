@@ -2,6 +2,8 @@ use std::error;
 use tui::layout::{Alignment, Rect};
 use tui::style::{Color, Modifier, Style};
 
+use unicode_width::UnicodeWidthStr;
+
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
@@ -93,6 +95,13 @@ impl App<'_> {
         self.query_section.rect = l[0];
         frame.render_widget(input, self.query_section.rect);
 
+        match self.input_mode {
+            InputMode::Normal => {}
+            InputMode::Editing => frame.set_cursor(
+                self.query_section.rect.x + self.query.width() as u16 + 1,
+                self.query_section.rect.y + 1,
+            ),
+        }
         let chunks = layout(frame.size());
 
         self.input_section.block = Block::default().title("JSON").borders(Borders::ALL);

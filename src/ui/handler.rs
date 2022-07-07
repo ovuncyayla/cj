@@ -18,12 +18,11 @@ pub fn handle_key_events(
         InputMode::Normal => match key_event.code {
             KeyCode::Char('e') => {
                 app.input_mode = InputMode::Editing;
-                app.input_mode = InputMode::Editing;
-                let mut t = terminal.borrow_mut();
-                t.set_cursor(
-                    app.query_section.rect.x + app.query.width() as u16 + 1,
-                    app.query_section.rect.y,
-                )?;
+                // let mut t = terminal.borrow_mut();
+                // t.set_cursor(
+                //     app.query_section.rect.x + app.query.width() as u16 + 1,
+                //     app.query_section.rect.y,
+                // )?;
             }
             KeyCode::Char('q') => {
                 return Ok(());
