@@ -2,6 +2,8 @@ use std::error;
 use tui::layout::{Alignment, Rect};
 use tui::style::{Color, Modifier, Style};
 
+use tui::text::Text;
+use tui::widgets::Wrap;
 use unicode_width::UnicodeWidthStr;
 
 use tui::{
@@ -20,45 +22,33 @@ pub enum InputMode {
     Editing,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, PartialEq, Default)]
-pub struct Coord {
-    pub x: u16,
-    pub y: u16,
-}
-
-#[derive(Debug, PartialEq, Default)]
-pub struct SectionBlock<'a> {
-    pub rect: Rect,
-    pub block: Block<'a>,
-}
-
 /// Application.
 #[derive(Debug)]
-pub struct App<'a> {
+pub struct App {
     pub running: bool,
     pub input_mode: InputMode,
     pub query: String,
-
-    pub query_section: SectionBlock<'a>,
-    pub input_section: SectionBlock<'a>,
-    pub output_section: SectionBlock<'a>,
+    pub json: String,
 }
 
-impl Default for App<'_> {
+impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
             query: String::from(""),
-            query_section: Default::default(),
-            input_section: Default::default(),
-            output_section: Default::default(),
             input_mode: InputMode::Normal,
+            json: String::from(
+                r#"
+               aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd  
+               aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd  
+               aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd  
+            "#,
+            ),
         }
     }
 }
 
-impl App<'_> {
+impl App {
     /// Constructs a new instance of [`App`].
     pub fn new() -> Self {
         Self::default()
@@ -75,8 +65,8 @@ impl App<'_> {
         // - https://github.com/fdehau/tui-rs/tree/v0.16.0/examples
         let l = Layout::default()
             .direction(Direction::Vertical)
-            .margin(1)
-            .constraints([Constraint::Percentage(10), Constraint::Percentage(90)].as_ref())
+            .margin(2)
+            .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
             .split(frame.size());
 
         let input = Paragraph::new(self.query.as_ref())
@@ -86,45 +76,32 @@ impl App<'_> {
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::RAPID_BLINK),
             })
-            .block(Block::default().borders(Borders::ALL).title("Input"));
-
-        self.query_section.block = Block::default()
-            .title("Query")
-            .borders(Borders::ALL)
-            .style(Style::default().add_modifier(Modifier::RAPID_BLINK));
-        self.query_section.rect = l[0];
-        frame.render_widget(input, self.query_section.rect);
+            .block(Block::default().borders(Borders::ALL).title("Query"));
 
         match self.input_mode {
             InputMode::Normal => {}
-            InputMode::Editing => frame.set_cursor(
-                self.query_section.rect.x + self.query.width() as u16 + 1,
-                self.query_section.rect.y + 1,
-            ),
+            InputMode::Editing => {
+                frame.set_cursor(l[0].x + self.query.width() as u16 + 1, l[0].y + 1)
+            }
         }
-        let chunks = layout(frame.size());
+        frame.render_widget(input, l[0]);
 
-        self.input_section.block = Block::default().title("JSON").borders(Borders::ALL);
-        self.input_section.rect = chunks[0];
-        frame.render_widget(self.input_section.block.clone(), self.input_section.rect);
+        let l = Layout::default()
+            .direction(Direction::Horizontal)
+            .margin(1)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+            .split(l[1]);
 
-        self.output_section.block = Block::default().title("Output").borders(Borders::ALL);
-        self.output_section.rect = chunks[1];
-        frame.render_widget(self.output_section.block.clone(), self.output_section.rect);
+        frame.render_widget(
+            self.prepare_input()
+                .block(Block::default().title("JSON").borders(Borders::ALL)),
+            l[0],
+        );
+
+        frame.render_widget(Block::default().title("Output").borders(Borders::ALL), l[1]);
     }
-}
 
-fn layout(size: tui::layout::Rect) -> Vec<tui::layout::Rect> {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(1)
-        .constraints([Constraint::Percentage(10), Constraint::Percentage(90)].as_ref())
-        .split(size);
-
-    let l = Layout::default()
-        .direction(Direction::Horizontal)
-        .margin(1)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(layout[1]);
-    l
+    pub fn prepare_input(&self) -> Paragraph {
+        Paragraph::new(Text::from(self.json.as_ref())).wrap(Wrap { trim: false })
+    }
 }
