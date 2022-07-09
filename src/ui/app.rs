@@ -37,21 +37,18 @@ impl Default for App {
             running: true,
             query: String::from(""),
             input_mode: InputMode::Normal,
-            json: String::from(
-                r#"
-               aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd  
-               aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd  
-               aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd aasdsd  
-            "#,
-            ),
+            json: String::from(""),
         }
     }
 }
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(content: String) -> Self {
+        App {
+            json: content,
+            ..Default::default()
+        }
     }
 
     /// Handles the tick event of the terminal.
@@ -66,7 +63,7 @@ impl App {
         let l = Layout::default()
             .direction(Direction::Vertical)
             .margin(2)
-            .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+            .constraints([Constraint::Length(3), Constraint::Min(3)].as_ref())
             .split(frame.size());
 
         let input = Paragraph::new(self.query.as_ref())

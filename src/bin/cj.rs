@@ -1,10 +1,7 @@
+use cj::extract_values;
 use clap::{arg, command, ArgGroup};
-use jsonpath_rust::{JsonPathFinder, JsonPathInst};
 use serde_json::Value;
-use std::{
-    io::{self, Read},
-    str::FromStr,
-};
+use std::io::{self, Read};
 
 fn main() {
     // Create application
@@ -50,7 +47,7 @@ fn main() {
     };
     if content.is_err() {
         println!("Content err{:?}", content);
-        return;
+        std::process::exit(1)
     }
 
     let filters: Vec<&str> = match matches.values_of("filters") {
@@ -64,41 +61,30 @@ fn main() {
 }
 
 fn run(content: &str, filters: Vec<&str>, compress: bool) {
-    match serde_json::from_str::<Value>(content) {
-        Ok(val) => {
-            if filters.is_empty() {
-                let json = if !compress {
-                    serde_json::ser::to_string_pretty(&val)
-                } else {
-                    serde_json::ser::to_string(&val)
-                };
-                println!("{}", json.unwrap())
-            }
-            extract_values(val, filters)
+    let val = match serde_json::from_str::<Value>(content) {
+        Ok(val) => val,
+        Err(e) => {
+            println!("Invalid JSON: {}", e);
+            std::process::exit(1)
         }
-        Err(e) => println!("Invalid JSON: {}", e),
-    }
-}
+    };
 
-fn extract_values(json: Value, filters: Vec<&str>) {
-    let paths: Vec<JsonPathInst> = filters
+    if filters.is_empty() {
+        let json = if !compress {
+            serde_json::ser::to_string_pretty(&val)
+        } else {
+            serde_json::ser::to_string(&val)
+        };
+        println!("{}", json.unwrap())
+    }
+    let values: Vec<Value> = extract_values(val, filters);
+    values
         .iter()
-        .map(|f| JsonPathInst::from_str(*f))
-        .take_while(|p| p.is_ok())
-        .map(|p| p.unwrap())
-        .collect();
-
-    for path in paths {
-        let finder = JsonPathFinder::new(Box::from(json.clone()), Box::from(path));
-
-        match &finder.find() {
-            Value::Array(p) => {
-                let mut val = serde_json::ser::to_string(&p).unwrap().to_string();
-                val.remove(0);
-                val.pop();
-                println!("{}", val);
-            }
-            _ => unreachable!(),
-        }
-    }
+        .map(|arr| {
+            let mut val = serde_json::ser::to_string(&arr).unwrap();
+            val.remove(0);
+            val.pop();
+            println!("{}", val);
+        })
+        .count();
 }

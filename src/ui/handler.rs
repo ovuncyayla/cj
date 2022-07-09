@@ -1,5 +1,5 @@
 use super::app::{App, AppResult, InputMode};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 use std::io::Stderr;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
@@ -58,5 +58,9 @@ pub fn handle_key_events(
         }
         _ => {}
     }
+    Ok(())
+}
+
+pub fn handle_mouse_events(_mouse_event: MouseEvent, _app: &mut App) -> AppResult<()> {
     Ok(())
 }
