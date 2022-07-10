@@ -1,9 +1,11 @@
+use jsonpath_rust::JsonPathFinder;
+use serde_json::{to_string_pretty, Value};
 use std::error;
 use tui::layout::{Alignment, Rect};
 use tui::style::{Color, Modifier, Style};
 
-use tui::text::Text;
-use tui::widgets::Wrap;
+use tui::text::{Span, Spans, Text};
+use tui::widgets::{List, ListItem, Wrap};
 use unicode_width::UnicodeWidthStr;
 
 use tui::{
@@ -12,6 +14,8 @@ use tui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
+
+use crate::extract_values;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -29,6 +33,7 @@ pub struct App {
     pub input_mode: InputMode,
     pub query: String,
     pub json: String,
+    pub result: String,
 }
 
 impl Default for App {
@@ -38,6 +43,7 @@ impl Default for App {
             query: String::from(""),
             input_mode: InputMode::Normal,
             json: String::from(""),
+            result: String::from(""),
         }
     }
 }
@@ -56,10 +62,6 @@ impl App {
 
     /// Renders the user interface widgets.
     pub fn render<B: Backend>(&mut self, frame: &mut Frame<'_, B>) {
-        // This is where you add new widgets.
-        // See the following resources:
-        // - https://docs.rs/tui/0.16.0/tui/widgets/index.html
-        // - https://github.com/fdehau/tui-rs/tree/v0.16.0/examples
         let l = Layout::default()
             .direction(Direction::Vertical)
             .margin(2)
@@ -90,15 +92,39 @@ impl App {
             .split(l[1]);
 
         frame.render_widget(
-            self.prepare_input()
+            self.prepare_input(&self.json)
                 .block(Block::default().title("JSON").borders(Borders::ALL)),
             l[0],
         );
 
-        frame.render_widget(Block::default().title("Output").borders(Borders::ALL), l[1]);
+        frame.render_widget(
+            self.prepare_input(&self.result)
+                .block(Block::default().title("Output").borders(Borders::ALL)),
+            l[1],
+        );
     }
 
-    pub fn prepare_input(&self) -> Paragraph {
-        Paragraph::new(Text::from(self.json.as_ref())).wrap(Wrap { trim: false })
+    pub fn prepare_input(&self, content: &str) -> List {
+        let lines: Vec<ListItem> = content
+            .lines()
+            .enumerate()
+            .map(|(i, m)| {
+                let content = vec![Spans::from(vec![
+                    Span::styled(format!("{} ", i), Style::default().fg(Color::Yellow)),
+                    Span::raw(m.to_string()),
+                ])];
+                ListItem::new(content)
+            })
+            .collect();
+        List::new(lines)
+    }
+
+    pub fn eval_query(&mut self) {
+        let result = JsonPathFinder::from_str(&self.json, &self.query);
+        if result.is_err() {
+            // TODO Make query input RED in case of err
+            return;
+        }
+        self.result = to_string_pretty(&result.unwrap().find()).unwrap();
     }
 }

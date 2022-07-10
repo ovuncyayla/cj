@@ -36,12 +36,15 @@ pub fn handle_key_events(
         InputMode::Editing => match key_event.code {
             KeyCode::Enter => {
                 // app.messages.push(app.query.drain(..).collect());
+                app.eval_query();
             }
             KeyCode::Char(c) => {
                 app.query.push(c);
+                app.eval_query();
             }
             KeyCode::Backspace => {
                 app.query.pop();
+                app.eval_query();
             }
             KeyCode::Esc => {
                 app.input_mode = InputMode::Normal;
