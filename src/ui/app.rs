@@ -5,7 +5,7 @@ use tui::layout::{Alignment, Rect};
 use tui::style::{Color, Modifier, Style};
 
 use tui::text::{Span, Spans, Text};
-use tui::widgets::{List, ListItem, Wrap};
+use tui::widgets::{List, ListItem, Widget, Wrap};
 use unicode_width::UnicodeWidthStr;
 
 use tui::{
@@ -15,44 +15,83 @@ use tui::{
     Frame,
 };
 
-use crate::extract_values;
+pub struct Drawable<T: Widget>(T, Rect);
+
+#[derive(Debug, Default)]
+pub struct Component {
+    pub buffer: String,
+    pub shape: Rect,
+    pub cursor_pos: (u16, u16),
+}
+
+pub struct AppLayout(Rect, Rect, Rect);
+
+fn make_app_layout(frame: Rect) -> AppLayout {
+    let top = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints([Constraint::Length(3), Constraint::Min(3)].as_ref())
+        .split(frame);
+
+    let bottom = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(1)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(top[1]);
+
+    AppLayout(top[0], bottom[0], bottom[1])
+}
+
+fn draw_query_component<B: Backend>(frame: &mut Frame<'_, B>, app: &mut App, area: Rect) {
+    let input = Paragraph::new(app.query.clone())
+        .block(Block::default().borders(Borders::ALL).title("Query"))
+        .style(match app.input_mode {
+            InputMode::Normal => Style::default(),
+            InputMode::Editing => Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::RAPID_BLINK),
+        });
+    frame.render_widget(input, area);
+
+    app.input_cursor_offset = app.query.width() as u16 + 1;
+    match app.input_mode {
+        InputMode::Normal => {}
+        InputMode::Editing => frame.set_cursor(area.x + app.input_cursor_offset, area.y + 1),
+    };
+}
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum InputMode {
     Normal,
     Editing,
 }
 
+impl Default for InputMode {
+    fn default() -> Self {
+        Self::Normal
+    }
+}
+
 /// Application.
-#[derive(Debug)]
+#[derive(Default)]
 pub struct App {
     pub running: bool,
     pub input_mode: InputMode,
     pub query: String,
     pub json: String,
     pub result: String,
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            running: true,
-            query: String::from(""),
-            input_mode: InputMode::Normal,
-            json: String::from(""),
-            result: String::from(""),
-        }
-    }
+    pub input_cursor_offset: u16,
+    pub input_block_pos: (u16, u16),
 }
 
 impl App {
-    /// Constructs a new instance of [`App`].
     pub fn new(content: String) -> Self {
         App {
             json: content,
+            running: true,
             ..Default::default()
         }
     }
@@ -62,45 +101,20 @@ impl App {
 
     /// Renders the user interface widgets.
     pub fn render<B: Backend>(&mut self, frame: &mut Frame<'_, B>) {
-        let l = Layout::default()
-            .direction(Direction::Vertical)
-            .margin(2)
-            .constraints([Constraint::Length(3), Constraint::Min(3)].as_ref())
-            .split(frame.size());
+        let layout = make_app_layout(frame.size());
 
-        let input = Paragraph::new(self.query.as_ref())
-            .style(match self.input_mode {
-                InputMode::Normal => Style::default(),
-                InputMode::Editing => Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::RAPID_BLINK),
-            })
-            .block(Block::default().borders(Borders::ALL).title("Query"));
-
-        match self.input_mode {
-            InputMode::Normal => {}
-            InputMode::Editing => {
-                frame.set_cursor(l[0].x + self.query.width() as u16 + 1, l[0].y + 1)
-            }
-        }
-        frame.render_widget(input, l[0]);
-
-        let l = Layout::default()
-            .direction(Direction::Horizontal)
-            .margin(1)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-            .split(l[1]);
+        draw_query_component(frame, self, layout.0);
 
         frame.render_widget(
             self.prepare_input(&self.json)
                 .block(Block::default().title("JSON").borders(Borders::ALL)),
-            l[0],
+            layout.1,
         );
 
         frame.render_widget(
             self.prepare_input(&self.result)
                 .block(Block::default().title("Output").borders(Borders::ALL)),
-            l[1],
+            layout.2,
         );
     }
 

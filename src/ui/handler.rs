@@ -19,6 +19,8 @@ pub fn handle_key_events(
             KeyCode::Char('e') => {
                 app.input_mode = InputMode::Editing;
                 // let mut t = terminal.borrow_mut();
+                // app.toggle_input_mode(&mut t.get_frame())
+                // let mut t = terminal.borrow_mut();
                 // t.set_cursor(
                 //     app.query_section.rect.x + app.query.width() as u16 + 1,
                 //     app.query_section.rect.y,
@@ -48,6 +50,12 @@ pub fn handle_key_events(
             }
             KeyCode::Esc => {
                 app.input_mode = InputMode::Normal;
+            }
+            KeyCode::Left => {
+                // let mut t = terminal.borrow_mut();
+                // if let Ok(c) = t.get_cursor() {
+                //     c.move_right()
+                // }
             }
             _ => {}
         },
