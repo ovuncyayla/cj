@@ -1,6 +1,6 @@
 // Based on https://pest.rs/book/examples/json.html
 use pest;
-use pest::error::Error;
+use pest::error::{Error};
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
@@ -52,7 +52,27 @@ pub fn parse_value(pair: Pair<Rule>) -> JSONValue {
     }
 }
 
-pub fn from_str(str: &str) -> Result<JSONValue, Error<&str>> {
+#[derive(Debug)]
+pub struct ParserError {
+    pub message: String
+}
+
+impl From<Error<Rule>> for ParserError {
+
+    fn from(err: Error<Rule>) -> Self {
+        let message = match err.line_col {
+            pest::error::LineColLocation::Pos(p) => {
+                format!("Position -  Line: {}, Col: {}", p.0, p.1)
+            },
+            pest::error::LineColLocation::Span(s1, s2) => {
+                format!("Position: {} - {}, {}, {}", s1.0, s1.1, s2.0, s2.1)
+            },
+        };
+        ParserError { message }
+    }
+}
+
+pub fn from_str(str: &str) -> Result<JSONValue, ParserError> {
     match JSONParser::parse(Rule::json, str) {
         Ok(mut result) => {
             let json = match result.next() {
@@ -61,10 +81,7 @@ pub fn from_str(str: &str) -> Result<JSONValue, Error<&str>> {
             };
             Ok(json)
         }
-        Err(e) => {
-            dbg!(e.clone());
-            todo!()
-        }
+        Err(e) => Err(ParserError::from(e))
     }
 }
 
@@ -112,7 +129,6 @@ mod tests {
     fn serialize_int() {
         let unparsed_file = "1";
         let json: JSONValue = from_str(&unparsed_file).unwrap();
-        println!("{}", serialize(&json));
         assert_eq!("1", serialize(&json));
     }
 
@@ -120,7 +136,14 @@ mod tests {
     fn serialize_string() {
         let unparsed_file = "\"asdasd\"";
         let json: JSONValue = from_str(&unparsed_file).unwrap();
-        println!("{}", serialize(&json));
         assert_eq!("\"asdasd\"", serialize(&json));
     }
+
+    #[test]
+    fn serialize_invalid_json() {
+        let unparsed_file = "Invalid";
+        let json: ParserError = from_str(&unparsed_file).expect_err("QWQEQWE");
+        assert_eq!("\"asdasd\"", serialize(&json));
+    }
+
 }
