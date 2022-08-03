@@ -52,10 +52,17 @@ pub fn parse_value(pair: Pair<Rule>) -> JSONValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ParserError {
     pub message: String
 }
+
+impl ParserError {
+    pub fn new(message: String) -> ParserError {
+        ParserError { message }
+    }
+}
+
 
 impl From<Error<Rule>> for ParserError {
 
@@ -86,7 +93,7 @@ pub fn from_str(str: &str) -> Result<JSONValue, ParserError> {
 }
 
 pub fn serialize(val: &JSONValue) -> String {
-    use JSONValue::*;
+    use JSONValue::{Array, Boolean, Null, Number, Object, String};
 
     match val {
         Object(o) => {
@@ -143,7 +150,7 @@ mod tests {
     fn serialize_invalid_json() {
         let unparsed_file = "Invalid";
         let json: ParserError = from_str(&unparsed_file).expect_err("QWQEQWE");
-        assert_eq!("\"asdasd\"", serialize(&json));
+        assert_eq!(ParserError::new("Position -  Line: 1, Col: 1".to_string()), json);
     }
 
 }
