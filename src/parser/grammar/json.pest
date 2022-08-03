@@ -32,4 +32,4 @@ number = @{
     ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
 }
 
-json = _{ SOI ~ (object | array) ~ EOI }
+json = _{ SOI ~ (object | array | string | number | null | boolean) ~ EOI }
