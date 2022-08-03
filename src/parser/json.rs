@@ -1,5 +1,4 @@
 // Based on https://pest.rs/book/examples/json.html
-
 use pest;
 use pest::error::Error;
 use pest::iterators::Pair;
@@ -10,6 +9,7 @@ use pest_derive::Parser;
 #[grammar = "parser/grammar/json.pest"]
 struct JSONParser;
 
+#[derive(Debug)]
 pub enum JSONValue<'a> {
     Object(Vec<(&'a str, JSONValue<'a>)>),
     Array(Vec<JSONValue<'a>>),
@@ -53,14 +53,14 @@ pub fn parse_value(pair: Pair<Rule>) -> JSONValue {
 }
 
 pub fn from_str(str: &str) -> Result<JSONValue, Error<&str>> {
-     match JSONParser::parse(Rule::json, str) {
+    match JSONParser::parse(Rule::json, str) {
         Ok(mut result) => {
             let json = match result.next() {
                 Some(content) => parse_value(content),
-                None => JSONValue::String("")
+                None => JSONValue::String(""),
             };
             Ok(json)
-        },
+        }
         Err(e) => {
             dbg!(e.clone());
             todo!()
@@ -68,19 +68,19 @@ pub fn from_str(str: &str) -> Result<JSONValue, Error<&str>> {
     }
 }
 
-pub fn serialize_jsonvalue(val: &JSONValue) -> String {
+pub fn serialize(val: &JSONValue) -> String {
     use JSONValue::*;
 
     match val {
         Object(o) => {
             let contents: Vec<_> = o
                 .iter()
-                .map(|(name, value)| format!("\"{}\":{}", name, serialize_jsonvalue(value)))
+                .map(|(name, value)| format!("\"{}\":{}", name, serialize(value)))
                 .collect();
             format!("{{{}}}", contents.join(","))
         }
         Array(a) => {
-            let contents: Vec<_> = a.iter().map(serialize_jsonvalue).collect();
+            let contents: Vec<_> = a.iter().map(serialize).collect();
             format!("[{}]", contents.join(","))
         }
         String(s) => format!("\"{}\"", s),
@@ -95,7 +95,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn serialize() {
+    fn serialize_object() {
         let unparsed_file = r#"
         {
             "nesting": { "inner object": {} },
@@ -105,7 +105,22 @@ mod tests {
     "#;
         let json: JSONValue = from_str(&unparsed_file).unwrap();
         assert_eq!("{\"nesting\":{\"inner object\":{}},\"an array\":[1.5,true,null,0.000001],\"string with escaped double quotes\":\"\\\"quick brown foxes\\\"\"}"
-            , serialize_jsonvalue(&json));
+            , serialize(&json));
     }
 
+    #[test]
+    fn serialize_int() {
+        let unparsed_file = "1";
+        let json: JSONValue = from_str(&unparsed_file).unwrap();
+        println!("{}", serialize(&json));
+        assert_eq!("1", serialize(&json));
+    }
+
+    #[test]
+    fn serialize_string() {
+        let unparsed_file = "\"asdasd\"";
+        let json: JSONValue = from_str(&unparsed_file).unwrap();
+        println!("{}", serialize(&json));
+        assert_eq!("\"asdasd\"", serialize(&json));
+    }
 }
