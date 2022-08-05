@@ -1,3 +1,5 @@
+use std::fmt::Formatter;
+
 // Based on https://pest.rs/book/examples/json.html
 use pest;
 use pest::error::{Error};
@@ -5,13 +7,15 @@ use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 
+use crate::util::Map;
+
 #[derive(Parser)]
 #[grammar = "parser/grammar/json.pest"]
 struct JSONParser;
 
 #[derive(Debug)]
 pub enum JSONValue<'a> {
-    Object(Vec<(&'a str, JSONValue<'a>)>),
+    Object(Map<&'a str, JSONValue<'a>>),
     Array(Vec<JSONValue<'a>>),
     String(&'a str),
     Number(f64),
@@ -21,7 +25,8 @@ pub enum JSONValue<'a> {
 
 pub fn parse_value(pair: Pair<Rule>) -> JSONValue {
     match pair.as_rule() {
-        Rule::object => JSONValue::Object(
+        Rule::object =>{
+            let mut obj = Map::<&str, JSONValue>::new();
             pair.into_inner()
                 .map(|pair| {
                     let mut inner_rules = pair.into_inner();
@@ -33,10 +38,11 @@ pub fn parse_value(pair: Pair<Rule>) -> JSONValue {
                         .unwrap()
                         .as_str();
                     let value = parse_value(inner_rules.next().unwrap());
-                    (name, value)
+                    obj.insert(name, value);
                 })
-                .collect(),
-        ),
+                .count();
+                JSONValue::Object(obj)
+        },
         Rule::array => JSONValue::Array(pair.into_inner().map(parse_value).collect()),
         Rule::string => JSONValue::String(pair.into_inner().next().unwrap().as_str()),
         Rule::number => JSONValue::Number(pair.as_str().parse().unwrap()),
@@ -92,15 +98,24 @@ pub fn from_str(str: &str) -> Result<JSONValue, ParserError> {
     }
 }
 
+
 pub fn serialize(val: &JSONValue) -> String {
     use JSONValue::{Array, Boolean, Null, Number, Object, String};
 
     match val {
         Object(o) => {
-            let contents: Vec<_> = o
-                .iter()
-                .map(|(name, value)| format!("\"{}\":{}", name, serialize(value)))
-                .collect();
+
+            // let contents: Vec<_> = o
+            //     .iter()
+            //     .map(|(name, value)| format!("\"{}\":{}", name, serialize(value)))
+            //     .collect();
+
+            let contents: Vec<_> = o.keys().iter()
+            .map(|&name| {
+                let value = o.get(&name);
+                format!("\"{}\":{}", name, serialize(value.unwrap()))
+            }).collect();
+
             format!("{{{}}}", contents.join(","))
         }
         Array(a) => {
@@ -114,6 +129,11 @@ pub fn serialize(val: &JSONValue) -> String {
     }
 }
 
+
+pub struct Serializer;
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,6 +142,7 @@ mod tests {
     fn serialize_object() {
         let unparsed_file = r#"
         {
+            "nesting": { "inner object": {} },
             "nesting": { "inner object": {} },
             "an array": [1.5, true, null, 1e-6],
             "string with escaped double quotes" : "\"quick brown foxes\""
